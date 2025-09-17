@@ -28,18 +28,19 @@ const myTable: string = 'movies'
 
 
 router.get('/:movieId', async (req: Request<MovieIdParam>, res: Response<Movie>) => {
+	const movieId: string = req.params.movieId
 	let getCommand = new GetCommand({
 		TableName: myTable,
 		Key: {
-			movieId: "m3",
+			movieId: movieId,
 			reviewId: 'meta'
-		}  // hämta Top Gun
+		}  // hämta olika filmer
 	})
 	const result: GetResult = await db.send(getCommand)
 
 	// TODO: validera result.Item så vi vet säkert att det är rätt sorts objekt
 
-	const item: Movie = result.Item
+	const item: Movie | undefined = result.Item
 	/* detta fick vi från dynamoDB:
 	 Item: {
 		movieId: 'm3',
@@ -50,7 +51,11 @@ router.get('/:movieId', async (req: Request<MovieIdParam>, res: Response<Movie>)
 	*/
 	
 	// console.log('Data from DynamoDB:', result)
-	res.send(item)
+	if( item ) {
+		res.send(item)
+	} else {
+		res.sendStatus(404)
+	}
 })
 
 
