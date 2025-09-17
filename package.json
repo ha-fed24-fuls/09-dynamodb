@@ -5,13 +5,15 @@
   "main": "index.js",
   "scripts": {
     "build-server": "tsc",
-	"start-server": "node --env-file .env ./serverDist/server.js"
+    "start-server": "node --env-file .env ./serverDist/server.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "module",
   "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.890.0",
+    "@aws-sdk/lib-dynamodb": "^3.890.0",
     "express": "^5.1.0"
   },
   "devDependencies": {
