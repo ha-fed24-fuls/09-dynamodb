@@ -1,18 +1,24 @@
-import type { Movie } from "../data/types.js";
+import type { Movie, Review } from "../data/types.js";
 import express from 'express'
 import type { Request, Response, Router } from 'express'
-import { GetCommand } from "@aws-sdk/lib-dynamodb";
+import { GetCommand, ScanCommand } from "@aws-sdk/lib-dynamodb";
 import { db } from '../data/dynamoDb.js'
+import { MovieArraySchema, MovieSchema } from "../data/validation.js";
 
 const router: Router = express.Router()
 
 
-
+// Typer och interface
 type MovieIdParam = {
 	movieId: string;
 }
 
 export type GetResult = Record<string, any> | undefined
+
+interface ScanResult<T> {
+	Items?: T[];
+	Count?: number;
+}
 
 
 const myTable: string = 'movies'
@@ -50,5 +56,40 @@ router.get('/:movieId', async (req: Request<MovieIdParam>, res: Response<Movie>)
 	}
 })
 
+// GET /movies
+router.get('/', async (req, res) => {
+	const result = await db.send(new ScanCommand({
+		TableName: myTable
+	}))
+	if( result.Count === undefined || result.Items === undefined ) {
+		res.sendStatus(500)  // bad request
+		return
+	}
+	// Validera items
+	// const items: Movie[]
+	let parseResult = MovieArraySchema.safeParse(result.Items)
+	if( !parseResult.success ) {
+		console.log('Result from database is not list of movie objects. ', result.Items, parseResult.error)
+		res.sendStatus(500)
+		return
+	}
+
+	// Type predicate - används för filter-funktionen
+	function isMovie(item: Movie | Review): item is Movie {
+		// Enklare variant:
+		// return 'title' in item
+		try {
+			let result = MovieSchema.parse(item)
+			return true
+		} catch {
+			return false
+		}
+	}
+
+	const items: (Movie | Review)[] = parseResult.data
+	const filtered: Movie[] = items.filter(isMovie)
+	// console.log(filtered)
+	res.send(filtered)
+})
 
 export default router

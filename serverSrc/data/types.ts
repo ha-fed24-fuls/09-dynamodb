@@ -5,3 +5,8 @@ export interface Movie {
 	reviewId: string; //'meta';
 }
 
+export interface Review {
+	movieId: string;
+	reviewId: string;
+	score: number;
+}
