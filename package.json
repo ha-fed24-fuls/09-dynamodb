@@ -6,7 +6,7 @@
   "scripts": {
     "build-server": "tsc",
     "start-server": "node --env-file .env ./serverDist/server.js",
-    "restart": "npm run build-server && npm run start-server"
+    "restart": "clear && npm run build-server && npm run start-server"
   },
   "keywords": [],
   "author": "",
@@ -15,7 +15,8 @@
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.890.0",
     "@aws-sdk/lib-dynamodb": "^3.890.0",
-    "express": "^5.1.0"
+    "express": "^5.1.0",
+    "zod": "^4.1.11"
   },
   "devDependencies": {
     "@types/express": "^5.0.3",
