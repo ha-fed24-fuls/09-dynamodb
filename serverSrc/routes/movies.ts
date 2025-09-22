@@ -1,7 +1,7 @@
 import type { Movie, Review } from "../data/types.js";
 import express from 'express'
 import type { Request, Response, Router } from 'express'
-import { GetCommand, ScanCommand } from "@aws-sdk/lib-dynamodb";
+import { GetCommand, ScanCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
 import { db } from '../data/dynamoDb.js'
 import { MovieArraySchema, MovieSchema } from "../data/validation.js";
 
@@ -91,5 +91,38 @@ router.get('/', async (req, res) => {
 	// console.log(filtered)
 	res.send(filtered)
 })
+
+interface PutBody {
+	title: string;
+	premiere: number;
+}
+
+router.put('/:movieId', async (req: Request<MovieIdParam, void, PutBody>, res: Response<void>) => {
+	const movieId = req.params.movieId
+	const newItem: PutBody = req.body
+
+	// TODO: validera newItem. Lägg till ett nytt schema i validation.ts
+	// Om body är felaktig: svara med 400 (bad request)
+	// Om vi vill svara med ett felmeddelande: ändra "void" till "ErrorResponse | void" (se tidigare kodexempel)
+
+	const result = await db.send(new UpdateCommand({
+		TableName: myTable,
+		Key: {
+			movieId: movieId,
+			reviewId: 'meta'
+		},
+		UpdateExpression: 'SET premiere = :premiere, title = :title',
+		ExpressionAttributeValues: {
+			':premiere': newItem.premiere,
+			':title': newItem.title
+		},
+		// ReturnValues: "ALL_NEW"
+	}))
+	// console.log('PUT result:', result)
+	// result.Attributes
+	res.sendStatus(200)
+})
+
+
 
 export default router
