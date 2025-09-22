@@ -1,12 +1,11 @@
 import type { Movie } from "../data/types.js";
 import express from 'express'
 import type { Request, Response, Router } from 'express'
-import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
-import { DynamoDBDocumentClient, GetCommand } from "@aws-sdk/lib-dynamodb";
+import { GetCommand } from "@aws-sdk/lib-dynamodb";
+import { db } from '../data/dynamoDb.js'
 
 const router: Router = express.Router()
-const accessKey: string = process.env.ACCESS_KEY || ''
-const secret: string = process.env.SECRET_ACCESS_KEY || ''
+
 
 
 type MovieIdParam = {
@@ -15,26 +14,19 @@ type MovieIdParam = {
 
 export type GetResult = Record<string, any> | undefined
 
-// DynamoDB stuff - flyttas till annan fil
-const client: DynamoDBClient = new DynamoDBClient({
-	region: "eu-north-1",  // se till att använda den region som du använder för DynamoDB
-	credentials: {
-		accessKeyId: accessKey,
-		secretAccessKey: secret,
-	},
-});
-const db: DynamoDBDocumentClient = DynamoDBDocumentClient.from(client);
+
 const myTable: string = 'movies'
 
 
+// GET /movies/:movieId
 router.get('/:movieId', async (req: Request<MovieIdParam>, res: Response<Movie>) => {
 	const movieId: string = req.params.movieId
 	let getCommand = new GetCommand({
 		TableName: myTable,
 		Key: {
-			movieId: movieId,
-			reviewId: 'meta'
-		}  // hämta olika filmer
+			movieId: movieId,  // PK
+			reviewId: 'meta'   // SK
+		}  // hämta specifik film
 	})
 	const result: GetResult = await db.send(getCommand)
 
@@ -49,7 +41,7 @@ router.get('/:movieId', async (req: Request<MovieIdParam>, res: Response<Movie>)
 		reviewId: 'meta'
 	}
 	*/
-	
+
 	// console.log('Data from DynamoDB:', result)
 	if( item ) {
 		res.send(item)
