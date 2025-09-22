@@ -74,9 +74,21 @@ router.get('/', async (req, res) => {
 		return
 	}
 
+	// Type predicate - används för filter-funktionen
+	function isMovie(item: Movie | Review): item is Movie {
+		// Enklare variant:
+		// return 'title' in item
+		try {
+			let result = MovieSchema.parse(item)
+			return true
+		} catch {
+			return false
+		}
+	}
+
 	const items: (Movie | Review)[] = parseResult.data
-	const filtered: Movie[] = items.filter(item => (item as Movie).title) as Movie[]
-	console.log(filtered)
+	const filtered: Movie[] = items.filter(isMovie)
+	// console.log(filtered)
 	res.send(filtered)
 })
 
