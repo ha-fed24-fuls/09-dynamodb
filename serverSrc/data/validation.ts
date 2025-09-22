@@ -1,4 +1,5 @@
 import * as z from 'zod'
+import type { Movie, Review } from './types.js'
 
 const movieIdRegex = /^m[0-9]+$/
 const reviewIdRegex = /^r[0-9]+$/
@@ -19,7 +20,29 @@ const ReviewSchema = z.object({
 //   type MovieArraySchema = (Movie | Review)[]
 const MovieArraySchema = z.array(z.union([MovieSchema, ReviewSchema]))
 
-export { MovieSchema, MovieArraySchema }
+
+// Type predicate - används för att filtrera listor med Movie|Review
+function isMovie(item: Movie | Review): item is Movie {
+	// Enklare variant:
+	// return 'title' in item
+	try {
+		let result = MovieSchema.parse(item)
+		return true
+	} catch {
+		return false
+	}
+}
+function isReview(item: Movie | Review): item is Review {
+	try {
+		let result = ReviewSchema.parse(item)
+		return true
+	} catch {
+		return false
+	}
+}
+
+
+export { MovieSchema, MovieArraySchema, ReviewSchema, isMovie, isReview }
 
 // Regex == reguljära uttryck, ett uttryck som beskriver en sträng
 // ^     -> början av strängen

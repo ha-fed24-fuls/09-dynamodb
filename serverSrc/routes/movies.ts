@@ -1,9 +1,9 @@
 import type { Movie, Review } from "../data/types.js";
 import express from 'express'
 import type { Request, Response, Router } from 'express'
-import { GetCommand, ScanCommand } from "@aws-sdk/lib-dynamodb";
+import { GetCommand, QueryCommand, ScanCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
 import { db } from '../data/dynamoDb.js'
-import { MovieArraySchema, MovieSchema } from "../data/validation.js";
+import { isMovie, isReview, MovieArraySchema, MovieSchema, ReviewSchema } from "../data/validation.js";
 
 const router: Router = express.Router()
 
@@ -22,6 +22,7 @@ interface ScanResult<T> {
 
 
 const myTable: string = 'movies'
+
 
 
 // GET /movies/:movieId
@@ -74,22 +75,66 @@ router.get('/', async (req, res) => {
 		return
 	}
 
-	// Type predicate - används för filter-funktionen
-	function isMovie(item: Movie | Review): item is Movie {
-		// Enklare variant:
-		// return 'title' in item
-		try {
-			let result = MovieSchema.parse(item)
-			return true
-		} catch {
-			return false
-		}
-	}
-
 	const items: (Movie | Review)[] = parseResult.data
 	const filtered: Movie[] = items.filter(isMovie)
 	// console.log(filtered)
 	res.send(filtered)
 })
+
+interface PutBody {
+	title: string;
+	premiere: number;
+}
+
+router.put('/:movieId', async (req: Request<MovieIdParam, void, PutBody>, res: Response<void>) => {
+	const movieId = req.params.movieId
+	const newItem: PutBody = req.body
+
+	// TODO: validera newItem. Lägg till ett nytt schema i validation.ts
+	// Om body är felaktig: svara med 400 (bad request)
+	// Om vi vill svara med ett felmeddelande: ändra "void" till "ErrorResponse | void" (se tidigare kodexempel)
+
+	const result = await db.send(new UpdateCommand({
+		TableName: myTable,
+		Key: {
+			movieId: movieId,
+			reviewId: 'meta'
+		},
+		UpdateExpression: 'SET premiere = :premiere, title = :title',
+		ExpressionAttributeValues: {
+			':premiere': newItem.premiere,
+			':title': newItem.title
+		},
+		// ReturnValues: "ALL_NEW"
+	}))
+	// console.log('PUT result:', result)
+	// result.Attributes
+	res.sendStatus(200)
+})
+
+
+router.get('/:movieId/reviews', async (req: Request<MovieIdParam>, res: Response<Review[] | void>) => {
+	const movieId = req.params.movieId
+
+	const result = await db.send(new QueryCommand({
+		TableName: myTable,
+		KeyConditionExpression: 'movieId = :movieId',  // PK i databasen heter "movieId" - vanligtvis heter den "pk" i stället
+		ExpressionAttributeValues: {
+			':movieId': movieId
+		}
+	}))
+
+	// console.log('QueryCommand result: ', result)
+	try {
+		let items: (Movie | Review)[] = MovieArraySchema.parse(result.Items)
+		const filtered: Review[] = items.filter(isReview)
+		res.send(filtered)
+
+	} catch(error) {
+		console.log('/movies/:id/reviews  - parse error: ', (error as Error).message)
+		res.sendStatus(500)
+	}
+})
+
 
 export default router
